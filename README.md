@@ -10,7 +10,7 @@ Cette application web permet de prédire si une tumeur mammaire est **bénigne**
 
 ## 🚀 Démo en ligne
 L'application est déployée sur Render. Vous pouvez la tester ici :
-👉 **[https://cancer-prediction-2-1z8a.onrender.com](https://cancer-prediction-2-1z8a.onrender.com)** *(Remplace ce lien par ton vrai lien Render)*
+👉 **https://cancer-prediction-2-1z8a.onrender.com/** *(Remplace ce lien par ton vrai lien Render)*
 
 ## ⚙️ Fonctionnalités
 * Saisie des 5 caractéristiques principales (Rayon, Texture, Périmètre, Surface, Lissage).
