@@ -23,8 +23,18 @@ def load_model_and_scaler():
     scaler.fit(X)
     moyennes = X.mean(axis=0)
     
-    # On renvoie aussi les noms des colonnes pour l'affichage
-    feature_names = [f'Feature_{i}' for i in range(1, 31)]
+    # Noms des caractéristiques traduits en français
+    feature_names = [
+        # 1. Moyennes (Mean)
+        "Rayon moyen", "Texture moyenne", "Périmètre moyen", "Surface moyenne", "Lissage moyen",
+        "Compacité moyenne", "Concavité moyenne", "Points concaves moyens", "Symétrie moyenne", "Dimension fractale moyenne",
+        # 2. Erreurs standard (SE)
+        "Erreur standard Rayon", "Erreur standard Texture", "Erreur standard Périmètre", "Erreur standard Surface", "Erreur standard Lissage",
+        "Erreur standard Compacité", "Erreur standard Concavité", "Erreur standard Points concaves", "Erreur standard Symétrie", "Erreur standard Dimension fractale",
+        # 3. Valeurs extrêmes (Worst)
+        "Rayon extrême", "Texture extrême", "Périmètre extrême", "Surface extrême", "Lissage extrême",
+        "Compacité extrême", "Concavité extrême", "Points concaves extrêmes", "Symétrie extrême", "Dimension fractale extrême"
+    ]
     
     return model, scaler, moyennes, feature_names
 
@@ -38,15 +48,15 @@ st.write("Modifiez les 5 valeurs les plus influentes :")
 
 col1, col2 = st.columns(2)
 with col1:
-    valeurs_utilisateur[0] = st.number_input("Rayon moyen", value=float(moyennes[0]))
-    valeurs_utilisateur[1] = st.number_input("Texture moyenne", value=float(moyennes[1]))
-    valeurs_utilisateur[2] = st.number_input("Périmètre moyen", value=float(moyennes[2]))
+    valeurs_utilisateur[0] = st.number_input(feature_names[0], value=float(moyennes[0]))
+    valeurs_utilisateur[1] = st.number_input(feature_names[1], value=float(moyennes[1]))
+    valeurs_utilisateur[2] = st.number_input(feature_names[2], value=float(moyennes[2]))
 
 with col2:
-    valeurs_utilisateur[3] = st.number_input("Surface moyenne", value=float(moyennes[3]))
-    valeurs_utilisateur[4] = st.number_input("Lissage moyen", value=float(moyennes[4]))
+    valeurs_utilisateur[3] = st.number_input(feature_names[3], value=float(moyennes[3]))
+    valeurs_utilisateur[4] = st.number_input(feature_names[4], value=float(moyennes[4]))
 
-# --- LA PARTIE AJOUTÉE : Le menu déroulant pour les 25 autres features ---
+# --- Menu déroulant pour les 25 autres features ---
 with st.expander("⚙️ Afficher les 30 caractéristiques (Paramètres avancés)"):
     st.write("Les valeurs non modifiées restent à leur moyenne par défaut.")
     
