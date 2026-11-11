@@ -11,7 +11,7 @@ st.write("Modèle MLP entraîné sur le dataset Wisconsin.")
 @st.cache_resource
 def load_model_and_scaler():
     # Chargement du modèle .keras
-    model = tf.keras.models.load_model('modele_cancer.keras')
+    model = tf.keras.models.load_model('modele_cancer.keras', compile=False)
 
     # Recalcul du scaler
     url = "https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data"
