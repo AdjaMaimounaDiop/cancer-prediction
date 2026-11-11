@@ -3,17 +3,16 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Prédiction Tumeur", layout="wide")
 st.title("🔬 Prédiction de Tumeur Mammaire")
-st.write("Ce modèle utilise un réseau de neurones (MLP) entraîné sur le dataset Wisconsin (30 caractéristiques).")
+st.write("Ce modèle utilise un réseau de neurones (MLP : 30 -> 16 -> 8 -> 1) entraîné sur le dataset Wisconsin.")
 
 @st.cache_resource
 def load_model_and_scaler():
-    # Chargement du modèle .keras
     model = tf.keras.models.load_model('modele_cancer.keras')
     
-    # Chargement des données pour calculer le scaler et les moyennes
     url = "https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data"
     column_names = ['ID', 'Diagnosis'] + [f'Feature_{i}' for i in range(1, 31)]
     df = pd.read_csv(url, names=column_names)
@@ -23,67 +22,92 @@ def load_model_and_scaler():
     scaler.fit(X)
     moyennes = X.mean(axis=0)
     
-    # Noms des caractéristiques traduits en français
     feature_names = [
-        # 1. Moyennes (Mean)
         "Rayon moyen", "Texture moyenne", "Périmètre moyen", "Surface moyenne", "Lissage moyen",
         "Compacité moyenne", "Concavité moyenne", "Points concaves moyens", "Symétrie moyenne", "Dimension fractale moyenne",
-        # 2. Erreurs standard (SE)
         "Erreur standard Rayon", "Erreur standard Texture", "Erreur standard Périmètre", "Erreur standard Surface", "Erreur standard Lissage",
         "Erreur standard Compacité", "Erreur standard Concavité", "Erreur standard Points concaves", "Erreur standard Symétrie", "Erreur standard Dimension fractale",
-        # 3. Valeurs extrêmes (Worst)
         "Rayon extrême", "Texture extrême", "Périmètre extrême", "Surface extrême", "Lissage extrême",
         "Compacité extrême", "Concavité extrême", "Points concaves extrêmes", "Symétrie extrême", "Dimension fractale extrême"
     ]
     
-    return model, scaler, moyennes, feature_names
+    # On récupère un patient sain (B) et un patient malade (M) du dataset pour les boutons de test
+    idx_benin = df[df['Diagnosis'] == 'B'].index[0]
+    idx_malin = df[df['Diagnosis'] == 'M'].index[0]
+    
+    patient_benin = df.iloc[idx_benin].drop(['ID', 'Diagnosis']).values.astype(float)
+    patient_malin = df.iloc[idx_malin].drop(['ID', 'Diagnosis']).values.astype(float)
+    
+    return model, scaler, moyennes, feature_names, patient_benin, patient_malin
 
-model, scaler, moyennes, feature_names = load_model_and_scaler()
+model, scaler, moyennes, feature_names, patient_benin, patient_malin = load_model_and_scaler()
 
-# On crée une copie des moyennes pour stocker les valeurs choisies par l'utilisateur
-valeurs_utilisateur = np.copy(moyennes)
+# --- BOUTONS DE TEST RAPIDE ---
+st.subheader("Test rapide")
+st.write("Chargez un profil type pour tester le modèle en 1 clic :")
+col_btn1, col_btn2 = st.columns(2)
+
+# On utilise st.session_state pour garder les valeurs en mémoire quand on clique
+if 'valeurs_utilisateur' not in st.session_state:
+    st.session_state.valeurs_utilisateur = np.copy(moyennes)
+
+if col_btn1.button("🟢 Charger un cas Bénin (Sain)"):
+    st.session_state.valeurs_utilisateur = np.copy(patient_benin)
+    
+if col_btn2.button("🔴 Charger un cas Malin (Tumeur)"):
+    st.session_state.valeurs_utilisateur = np.copy(patient_malin)
+
+st.write("---")
+
+# --- FORMULAIRE PRINCIPAL ---
+valeurs_utilisateur = np.copy(st.session_state.valeurs_utilisateur)
 
 st.subheader("Caractéristiques principales")
 st.write("Modifiez les 5 valeurs les plus influentes :")
 
 col1, col2 = st.columns(2)
 with col1:
-    valeurs_utilisateur[0] = st.number_input(feature_names[0], value=float(moyennes[0]))
-    valeurs_utilisateur[1] = st.number_input(feature_names[1], value=float(moyennes[1]))
-    valeurs_utilisateur[2] = st.number_input(feature_names[2], value=float(moyennes[2]))
+    valeurs_utilisateur[0] = st.number_input(feature_names[0], value=float(valeurs_utilisateur[0]))
+    valeurs_utilisateur[1] = st.number_input(feature_names[1], value=float(valeurs_utilisateur[1]))
+    valeurs_utilisateur[2] = st.number_input(feature_names[2], value=float(valeurs_utilisateur[2]))
 
 with col2:
-    valeurs_utilisateur[3] = st.number_input(feature_names[3], value=float(moyennes[3]))
-    valeurs_utilisateur[4] = st.number_input(feature_names[4], value=float(moyennes[4]))
+    valeurs_utilisateur[3] = st.number_input(feature_names[3], value=float(valeurs_utilisateur[3]))
+    valeurs_utilisateur[4] = st.number_input(feature_names[4], value=float(valeurs_utilisateur[4]))
 
-# --- Menu déroulant pour les 25 autres features ---
 with st.expander("⚙️ Afficher les 30 caractéristiques (Paramètres avancés)"):
-    st.write("Les valeurs non modifiées restent à leur moyenne par défaut.")
-    
-    # On crée 3 colonnes pour que ce soit plus compact
     col_a, col_b, col_c = st.columns(3)
-    
     for i in range(5, 30):
-        # On distribue les champs dans les 3 colonnes
         with [col_a, col_b, col_c][i % 3]:
-            valeurs_utilisateur[i] = st.number_input(
-                f"{feature_names[i]}", 
-                value=float(moyennes[i])
-            )
+            valeurs_utilisateur[i] = st.number_input(f"{feature_names[i]}", value=float(valeurs_utilisateur[i]))
 
 st.write("---")
 
+# --- PRÉDICTION ET GRAPHIQUE ---
 if st.button("🔍 Prédire", type="primary"):
-    # On prépare les données sous forme (1, 30)
     input_data = valeurs_utilisateur.reshape(1, 30)
-    
-    # Standardisation
     input_scaled = scaler.transform(input_data)
-    
-    # Prédiction
     prob = model.predict(input_scaled, verbose=0)[0][0]
     
     if prob > 0.5:
         st.error(f"⚠️ **Prédiction : Maligne** (Probabilité : {prob:.2%})")
     else:
         st.success(f"✅ **Prédiction : Bénigne** (Probabilité : {1 - prob:.2%})")
+        
+    st.write("### Pourquoi cette décision ?")
+    st.write("Voici les 10 caractéristiques qui ont le plus influencé le réseau de neurones :")
+    
+    # Récupération des poids de la première couche du réseau (30 -> 16)
+    poids = np.abs(model.layers[0].get_weights()[0]).sum(axis=1)
+    
+    # On prend les 10 plus grands poids
+    top_indices = np.argsort(poids)[-10:]
+    top_noms = [feature_names[i] for i in top_indices]
+    top_poids = poids[top_indices]
+    
+    # Création du graphique
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.barh(top_noms, top_poids, color='skyblue')
+    ax.set_xlabel("Importance relative (Poids absolus)")
+    ax.set_title("Top 10 des caractéristiques les plus importantes")
+    st.pyplot(fig)
