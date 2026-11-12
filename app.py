@@ -2,7 +2,8 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from sklearn.preprocessing import StandardScaler
+import joblib
+import os
 
 st.set_page_config(page_title="Prédiction Tumeur", layout="wide")
 st.title("🔬 Prédiction de Tumeur Mammaire")
@@ -10,16 +11,25 @@ st.write("Ce modèle utilise un réseau de neurones (MLP : 30 -> 16 -> 8 -> 1) e
 
 @st.cache_resource
 def load_model_and_scaler():
+    # 1. Chargement du modèle .keras
+    if not os.path.exists('modele_cancer.keras'):
+        st.error("❌ Fichier 'modele_cancer.keras' introuvable.")
+        st.stop()
     model = tf.keras.models.load_model('modele_cancer.keras')
-    
+
+    # 2. Chargement du scaler sauvegardé
+    if not os.path.exists('scaler.pkl'):
+        st.error("❌ Fichier 'scaler.pkl' introuvable. Il doit être dans le même dossier.")
+        st.stop()
+    scaler = joblib.load('scaler.pkl')
+
+    # 3. Données pour l'interface (boutons de test et moyennes)
     url = "https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/wdbc.data"
     column_names = ['ID', 'Diagnosis'] + [f'Feature_{i}' for i in range(1, 31)]
     df = pd.read_csv(url, names=column_names)
-    X = df.drop(columns=['ID', 'Diagnosis']).values
     
-    scaler = StandardScaler()
-    scaler.fit(X)
-    moyennes = X.mean(axis=0)
+    X_raw = df.drop(columns=['ID', 'Diagnosis']).values
+    moyennes = X_raw.mean(axis=0) 
     
     feature_names = [
         "Rayon moyen", "Texture moyenne", "Périmètre moyen", "Surface moyenne", "Lissage moyen",
@@ -30,7 +40,6 @@ def load_model_and_scaler():
         "Compacité extrême", "Concavité extrême", "Points concaves extrêmes", "Symétrie extrême", "Dimension fractale extrême"
     ]
     
-    # On récupère un patient sain (B) et un patient malade (M) du dataset pour les boutons de test
     idx_benin = df[df['Diagnosis'] == 'B'].index[0]
     idx_malin = df[df['Diagnosis'] == 'M'].index[0]
     
@@ -46,7 +55,6 @@ st.subheader("Test rapide")
 st.write("Chargez un profil type pour tester le modèle en 1 clic :")
 col_btn1, col_btn2 = st.columns(2)
 
-# On utilise st.session_state pour garder les valeurs en mémoire quand on clique
 if 'valeurs_utilisateur' not in st.session_state:
     st.session_state.valeurs_utilisateur = np.copy(moyennes)
 
