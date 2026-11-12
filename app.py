@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Prédiction Tumeur", layout="wide")
 st.title("🔬 Prédiction de Tumeur Mammaire")
@@ -83,7 +82,7 @@ with st.expander("⚙️ Afficher les 30 caractéristiques (Paramètres avancés
 
 st.write("---")
 
-# --- PRÉDICTION ET GRAPHIQUE ---
+# --- PRÉDICTION ---
 if st.button("🔍 Prédire", type="primary"):
     input_data = valeurs_utilisateur.reshape(1, 30)
     input_scaled = scaler.transform(input_data)
@@ -93,21 +92,3 @@ if st.button("🔍 Prédire", type="primary"):
         st.error(f"⚠️ **Prédiction : Maligne** (Probabilité : {prob:.2%})")
     else:
         st.success(f"✅ **Prédiction : Bénigne** (Probabilité : {1 - prob:.2%})")
-        
-    st.write("### Pourquoi cette décision ?")
-    st.write("Voici les 10 caractéristiques qui ont le plus influencé le réseau de neurones :")
-    
-    # Récupération des poids de la première couche du réseau (30 -> 16)
-    poids = np.abs(model.layers[0].get_weights()[0]).sum(axis=1)
-    
-    # On prend les 10 plus grands poids
-    top_indices = np.argsort(poids)[-10:]
-    top_noms = [feature_names[i] for i in top_indices]
-    top_poids = poids[top_indices]
-    
-    # Création du graphique
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.barh(top_noms, top_poids, color='skyblue')
-    ax.set_xlabel("Importance relative (Poids absolus)")
-    ax.set_title("Top 10 des caractéristiques les plus importantes")
-    st.pyplot(fig)
